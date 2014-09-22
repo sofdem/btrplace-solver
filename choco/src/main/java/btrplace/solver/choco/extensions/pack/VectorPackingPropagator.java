@@ -166,6 +166,10 @@ public class VectorPackingPropagator extends Propagator<IntVar> {
         return ESat.TRUE;
     }
 
+    public int getRest(int dim, int bin) {
+        return loads[dim][bin].getUB() - assignedLoad[dim][bin].get();
+    }
+
     //***********************************************************************************************************************//
 	// EVENTS
     //***********************************************************************************************************************//

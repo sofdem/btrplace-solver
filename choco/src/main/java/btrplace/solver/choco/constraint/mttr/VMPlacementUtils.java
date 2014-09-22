@@ -19,8 +19,10 @@
 package btrplace.solver.choco.constraint.mttr;
 
 import btrplace.model.Mapping;
+import btrplace.model.Node;
 import btrplace.model.VM;
 import btrplace.solver.choco.ReconfigurationProblem;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import solver.variables.IntVar;
 
 import java.util.HashMap;
@@ -29,7 +31,7 @@ import java.util.Map;
 
 /**
  * Tools to ease the management of the VM placement.
- *
+ * TODO: REMOVE FILE
  * @author Fabien Hermenier
  */
 public final class VMPlacementUtils {

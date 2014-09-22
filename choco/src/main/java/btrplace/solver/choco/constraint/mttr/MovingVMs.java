@@ -22,16 +22,13 @@ import btrplace.model.Mapping;
 import btrplace.model.Node;
 import btrplace.model.VM;
 import btrplace.solver.choco.ReconfigurationProblem;
-import btrplace.solver.choco.SliceUtils;
-import btrplace.solver.choco.transition.TransitionUtils;
-import btrplace.solver.choco.transition.VMTransition;
+import gnu.trove.map.hash.TObjectIntHashMap;
+import memory.IEnvironment;
 import memory.IStateInt;
 import solver.search.strategy.selectors.VariableSelector;
 import solver.variables.IntVar;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 
 /**
@@ -45,51 +42,35 @@ public class MovingVMs implements VariableSelector<IntVar> {
     /**
      * The demanding slices to consider.
      */
-    private List<VMTransition> actions;
-
-    private Mapping map;
-
-    private ReconfigurationProblem rp;
-
+    private TObjectIntHashMap<IntVar> initHost;
     private IStateInt idx;
 
     /**
      * Make a new heuristic.
      * By default, the heuristic doesn't touch the scheduling constraints.
      *
-     * @param s   the solver to use to extract the assignment variables
-     * @param m   the initial configuration
-     * @param actions the actions to consider
+     * @param env  the environment
+     * @param initHost the mapping between the D-slice variables and the initial location ids
      */
-    public MovingVMs(ReconfigurationProblem s, Mapping m, List<VMTransition> actions) {
-        this.map = m;
-        this.actions = actions;
-        this.rp = s;
-        this.idx = s.getSolver().getEnvironment().makeInt(0);
-    }
-
-    private boolean setToNextMovingVM(IntVar[] scopes) {
-        assert actions.size() == scopes.length;
-        for (int i = idx.get(); i < scopes.length; i++) {
-            IntVar h = scopes[i];
-            if (!h.isInstantiated()) {
-                VM vm = actions.get(i).getVM();
-                Node nId = map.getVMLocation(vm);
-                if (nId != null) {
-                    //VM was running
-                    if (!h.contains(rp.getNode(nId))) {
-                        idx.set(i);
-                        return true;
-                    }
-                }
-            }
-            i++;
-        }
-        return false;
+    public MovingVMs(IEnvironment env, TObjectIntHashMap<IntVar> initHost) {
+        this.initHost = initHost;
+        this.idx = env.makeInt(0);
     }
 
     @Override
     public IntVar getVariable(IntVar[] scopes) {
-        return (setToNextMovingVM(scopes)) ? scopes[idx.get()] : null;
+        for (int i = idx.get(); i < scopes.length; i++) {
+            IntVar h = scopes[i];
+            if (!h.isInstantiated()) {
+                assert initHost.contains(h);
+                int nId = initHost.get(h);
+                if (nId != -1 && !h.contains(nId)) {
+                    idx.set(i);
+                    return h;
+                }
+            }
+            i++;
+        }
+        return null;
     }
 }

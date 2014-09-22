@@ -189,7 +189,7 @@ public class TaskScheduler extends Constraint {
                 int nIdx = vars[idx].getValue();
                 vIns[nIdx].add(idx);
             }
-            forcePropagate(EventType.INSTANTIATE);
+            forcePropagate(EventType.CUSTOM_PROPAGATION);
         }
 
         @Override

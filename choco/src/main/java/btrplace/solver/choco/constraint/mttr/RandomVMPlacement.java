@@ -19,9 +19,12 @@
 package btrplace.solver.choco.constraint.mttr;
 
 
+import btrplace.model.Mapping;
+import btrplace.model.Node;
 import btrplace.model.VM;
 import btrplace.solver.choco.ReconfigurationProblem;
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import gnu.trove.set.hash.TIntHashSet;
 import solver.search.strategy.selectors.IntValueSelector;
 import solver.variables.IntVar;
@@ -40,42 +43,32 @@ import java.util.Random;
  */
 public class RandomVMPlacement implements IntValueSelector {
 
-    private boolean stay;
-
-    private ReconfigurationProblem rp;
-
+    private TObjectIntHashMap<IntVar> initHost;
+    private TIntHashSet[] ranks;
     private Random rnd;
 
-    private Map<IntVar, VM> vmPlacement;
-
-    private TIntHashSet[] ranks;
 
 
     /**
      * Make a new heuristic.
      *
-     * @param p           the problem to rely on
-     * @param pVarMapping a map to indicate the VM associated to each of the placement variable
-     * @param stayFirst   {@code true} to force an already VM to stay on its current node if possible
+     * @param initHost the mapping between the D-slice variables and the initial location ids or null for full random
      */
-    public RandomVMPlacement(ReconfigurationProblem p, Map<IntVar, VM> pVarMapping, boolean stayFirst) {
-        this(p, pVarMapping, null, stayFirst);
+    public RandomVMPlacement(TObjectIntHashMap<IntVar> initHost) {
+        this(initHost, null);
     }
 
     /**
      * Make a new heuristic.
      *
-     * @param p           the problem to rely on
-     * @param pVarMapping a map to indicate the VM associated to each of the placement variable
+     * @param initHost the mapping between the D-slice variables and the initial location ids
      * @param priorities  a list of favorites servers. Servers in rank i will be favored wrt. servers in rank i + 1
-     * @param stayFirst   {@code true} to force an already VM to stay on its current node if possible
+//     * @param stayFirst   {@code true} to force an already VM to stay on its current node if possible
      */
-    public RandomVMPlacement(ReconfigurationProblem p, Map<IntVar, VM> pVarMapping, TIntHashSet[] priorities, boolean stayFirst) {
-        stay = stayFirst;
-        this.rp = p;
-        rnd = new Random();
-        vmPlacement = pVarMapping;
+    public RandomVMPlacement(TObjectIntHashMap<IntVar> initHost, TIntHashSet[] priorities) {
+        this.initHost = initHost;
         this.ranks = priorities;
+        rnd = new Random();
     }
 
     /**
@@ -89,9 +82,7 @@ public class RandomVMPlacement implements IntValueSelector {
         try {
             while (ite.hasNext()) {
                 int v = ite.next();
-                int i;
-
-                for (i = 0; i < ranks.length; i++) {
+                for (int i = 0; i < ranks.length; i++) {
                     if (ranks[i].contains(v)) {
                         if (values[i] == null) {
                             values[i] = new TIntArrayList();
@@ -134,22 +125,11 @@ public class RandomVMPlacement implements IntValueSelector {
 
     @Override
     public int selectValue(IntVar x) {
-        if (stay) {
-            VM vm = vmPlacement.get(x);
-            if (VMPlacementUtils.canStay(rp, vm)) {
-                return rp.getNode(rp.getSourceModel().getMapping().getVMLocation(vm));
-            }
+        if (initHost != null) {
+            int curPos = initHost.get(x);
+            if (curPos != -1 && x.contains(curPos))
+                return curPos;
         }
-
-        if (!x.isInstantiated()) {
-            int nIdx;
-            if (ranks != null) {
-                nIdx = randomWithRankedValues(x);
-            } else {
-                nIdx = randomValue(x);
-            }
-            return nIdx;
-        }
-        return x.getValue();
+        return (ranks != null) ? randomWithRankedValues(x) : randomValue(x);
     }
 }

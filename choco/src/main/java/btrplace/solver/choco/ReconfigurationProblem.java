@@ -182,7 +182,7 @@ public interface ReconfigurationProblem {
      * @param id the VMs
      * @return an array of transition. The order is provided by the collection iterator.
      */
-    VMTransition[] getVMActions(Set<VM> id);
+    //VMTransition[] getVMActions(Set<VM> id);
 
 
     /**

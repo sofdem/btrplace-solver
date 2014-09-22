@@ -79,7 +79,7 @@ public class OnStableNodeFirst implements VariableSelector<IntVar> {
         hosts = new IntVar[vmActions.length];
         starts = new IntVar[vmActions.length];
 
-        this.vms = new ArrayList<>(rp.getFutureRunningVMs());
+        this.vms = new ArrayList<>(rp.getFutureRunningVMs()); // TODO sleeping ?
 
         oldPos = new int[hosts.length];
         outs = new BitSet[rp.getNodes().length];
@@ -186,7 +186,6 @@ public class OnStableNodeFirst implements VariableSelector<IntVar> {
      * @return a start moment, or {@code null} if all the moments  are already instantiated
      */
     private IntVar getMovingVM() {
-        //VMs that are moving
         for (int i = move.nextSetBit(0); i >= 0; i = move.nextSetBit(i + 1)) {
             if (starts[i] != null && !starts[i].isInstantiated()) {
                 if (oldPos[i] != hosts[i].getValue()) {

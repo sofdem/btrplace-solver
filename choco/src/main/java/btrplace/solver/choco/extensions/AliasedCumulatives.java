@@ -289,7 +289,7 @@ public class AliasedCumulatives extends Constraint {
                     vIns.add(idx);
                 }
             }
-            forcePropagate(EventType.INSTANTIATE);
+            forcePropagate(EventType.CUSTOM_PROPAGATION);
         }
         public ESat isSatisfied(int[] vals) {
             //Split this use tab to ease the analysis

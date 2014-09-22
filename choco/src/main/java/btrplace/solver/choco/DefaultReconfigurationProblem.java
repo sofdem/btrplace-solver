@@ -603,10 +603,8 @@ public class DefaultReconfigurationProblem implements ReconfigurationProblem {
         return vmActions;
     }
 
-    @Override
-    public VMTransition[] getVMActions(Set<VM> id) {
-        return vmActions;
-    }
+    //@Override
+    //public VMTransition[] getVMActions(Set<VM> id) { return vmActions; }
 
     @Override
     public VMTransition getVMAction(VM id) {
