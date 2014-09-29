@@ -250,10 +250,10 @@ public class DefaultChocoReconfigurationAlgorithmTest {
         mem.setConsumption(vm2, 8);
 
         cpu.setConsumption(vm3, 5);
-        cpu.setConsumption(vm3, 4);
+        mem.setConsumption(vm3, 4);
 
         cpu.setConsumption(vm4, 4);
-        cpu.setConsumption(vm4, 5);
+        mem.setConsumption(vm4, 5);
 
         //vm1 requires more cpu resources, but fewer mem resources
         Preserve pCPU = new Preserve(vm1, "cpu", 7);

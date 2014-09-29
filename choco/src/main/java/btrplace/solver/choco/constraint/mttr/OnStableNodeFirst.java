@@ -60,7 +60,7 @@ public class OnStableNodeFirst implements VariableSelector<IntVar> {
 
     private IStateInt firstFree;
 
-    private IntVar last;
+    private IntVar last; // TODO: sert plus a rien
 
     /**
      * Make a new heuristics
@@ -155,7 +155,7 @@ public class OnStableNodeFirst implements VariableSelector<IntVar> {
     public IntVar getVariable(IntVar[] scope) {
 
         // TODO: test last == null ? test coherence between scope and the variable returned
-        if (last == null) return null;
+//        if (last == null) return null;
 
         makeIncoming();
         IntVar v = getVMtoLeafNode();
@@ -258,6 +258,7 @@ public class OnStableNodeFirst implements VariableSelector<IntVar> {
                 BitSet in = ins[x];
                 for (int i = in.nextSetBit(0); i >= 0; i = in.nextSetBit(i + 1)) {
                     if (starts[i] != null && !starts[i].isInstantiated()) {
+                        return starts[i];
                     }
                 }
             }

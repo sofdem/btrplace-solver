@@ -1,11 +1,8 @@
 package btrplace.solver.choco.constraint.mttr;
 
-import solver.exception.ContradictionException;
 import solver.search.strategy.decision.Decision;
-import solver.search.strategy.selectors.VariableSelector;
 import solver.search.strategy.strategy.AbstractStrategy;
 import solver.variables.IntVar;
-import solver.variables.Variable;
 
 /*
  * A mock strategy that invalidate the scheduling heuristic prior its use.

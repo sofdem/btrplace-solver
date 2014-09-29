@@ -30,7 +30,6 @@ import btrplace.solver.choco.Slice;
 import btrplace.solver.choco.transition.Transition;
 import btrplace.solver.choco.transition.VMTransition;
 import solver.Cause;
-import solver.constraints.IntConstraintFactory;
 import solver.exception.ContradictionException;
 
 import java.util.Set;
@@ -66,6 +65,9 @@ public class COffline implements ChocoConstraint {
         Transition m = rp.getNodeAction(nId);
         try {
             m.getState().instantiateTo(0, Cause.Null);
+            if (rp.getSourceModel().getMapping().isOffline(nId)) {
+                m.getStart().instantiateTo(0, Cause.Null);
+            }
         } catch (ContradictionException ex) {
             rp.getLogger().error("Unable to force node '{}' at being offline: {}", nId);
             return false;
@@ -73,7 +75,12 @@ public class COffline implements ChocoConstraint {
         for (VMTransition am : rp.getVMActions()) {
             Slice s = am.getDSlice();
             if (s != null) {
-                rp.getSolver().post(IntConstraintFactory.arithm(s.getHoster(), "!=", id));
+                try {
+                    s.getHoster().removeValue(id, Cause.Null);
+                } catch (ContradictionException e) {
+                    rp.getLogger().error("Unable to remove VM '{}' of node {}: {}", am.getVM(), nId, e.getMessage());
+                }
+                //rp.getSolver().post(new solver.constraints.Arithmetic(s.getHoster(), Operator.NQ, id));
             }
         }
         return true;

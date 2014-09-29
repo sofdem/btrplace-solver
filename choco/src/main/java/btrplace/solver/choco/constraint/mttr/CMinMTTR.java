@@ -22,8 +22,6 @@ import btrplace.model.Model;
 import btrplace.model.Node;
 import btrplace.model.VM;
 import btrplace.model.constraint.MinMTTR;
-import btrplace.model.view.ShareableResource;
-import btrplace.model.view.VMConsumptionComparator;
 import btrplace.solver.SolverException;
 import btrplace.solver.choco.ReconfigurationProblem;
 import btrplace.solver.choco.Slice;
@@ -31,7 +29,6 @@ import btrplace.solver.choco.SliceUtils;
 import btrplace.solver.choco.constraint.ChocoConstraintBuilder;
 import btrplace.solver.choco.transition.Transition;
 import btrplace.solver.choco.transition.TransitionUtils;
-import btrplace.solver.choco.view.CShareableResource;
 import btrplace.solver.choco.view.ChocoView;
 import btrplace.solver.choco.view.Packing;
 import btrplace.solver.choco.view.VectorPacking;
@@ -48,7 +45,6 @@ import solver.search.strategy.strategy.IntStrategy;
 import solver.variables.IntVar;
 import solver.variables.VariableFactory;
 
-import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -95,8 +91,8 @@ public class CMinMTTR implements btrplace.solver.choco.constraint.CObjective {
         //as the risk of cyclic dependencies increase and their is no solution for the moment to detect cycle
         //in the scheduling part
         //Restart limit = 2 * number of VMs in the DC.
-        if (rp.getVMs().length > 0) {
-            SMF.geometrical(rp.getSolver(), 1, 1.5d, new BacktrackCounter(rp.getVMs().length * 2), Integer.MAX_VALUE);
+        if (p.getVMs().length > 0) {
+            SMF.geometrical(rp.getSolver(), p.getVMs().length * 2, 1.5d, new BacktrackCounter(p.getVMs().length * 2), Integer.MAX_VALUE);
         }
 
         // set the solver heuristics : placement, scheduling then cost
@@ -125,7 +121,6 @@ public class CMinMTTR implements btrplace.solver.choco.constraint.CObjective {
         MovementGraph gr = new MovementGraph(rp);
         strategies.add(new IntStrategy(SliceUtils.extractStarts(TransitionUtils.getDSlices(rp.getVMActions())), new StartOnLeafNodes(rp, gr), new IntDomainMin()));
         strategies.add(new IntStrategy(schedHeuristic.getScope(), schedHeuristic, new IntDomainMin()));
-
         strategies.add(new IntStrategy(new IntVar[]{rp.getEnd(), cost}, new InputOrder<>(), new IntDomainMin()));
         rp.getSolver().set(strategies.toArray(new AbstractStrategy[strategies.size()]));
 
@@ -136,8 +131,7 @@ public class CMinMTTR implements btrplace.solver.choco.constraint.CObjective {
         List<IntVar> vmThatMayStay = new LinkedList<>();
         List<IntVar> vmOthers = new LinkedList<>();
         TObjectIntHashMap<IntVar> initHost = new TObjectIntHashMap<>(rp.getFutureRunningVMs().size(), 0.5f, -1);
-        for (Iterator<VM> ite = rp.getManageableVMs().iterator(); ite.hasNext(); ) {
-            VM vm = ite.next();
+        for (VM vm : rp.getManageableVMs()) {
             Slice slice = rp.getVMAction(vm).getDSlice();
             if (slice != null) {
                 IntVar var = slice.getHoster();
@@ -169,88 +163,14 @@ public class CMinMTTR implements btrplace.solver.choco.constraint.CObjective {
 
 
     private void injectWorstFitPackingHeuristic(List<AbstractStrategy> strategies) throws SolverException {
-
         ChocoView v = rp.getView(Packing.VIEW_ID);
         if (v == null) {
             throw new SolverException(rp.getSourceModel(), "View '" + Packing.VIEW_ID + "' is required but missing");
         }
-        strategies.add(new WorstFitDecreasingStrategy((VectorPacking) v));
-    }
-
-/*
-    private void injectPackingHeuristic(List<AbstractStrategy> strategies) {
-        Set<VM> manageableVMs = rp.getManageableVMs();
-        if (manageableVMs.size() == 0) {
-            return;
-        }
-
-        CShareableResource viewRam = null;
-        for (String vid : rp.getViews()) {
-            if (vid.startsWith("ShareableResource")) {
-                if (vid.startsWith("ShareableResource.ram")) {
-                    viewRam = (CShareableResource) rp.getView(vid);
-                    break;
-                }
-                viewRam = (CShareableResource) rp.getView(vid);
-            }
-        }
-        if (viewRam == null) {
-            injectPlacementHeuristic(strategies);
-            return;
-        }
-        VMConsumptionComparator resComp = new VMConsumptionComparator(viewRam.getSourceResource(), false);
-        for (String vid : rp.getViews()) {
-            if (viewRam.getIdentifier() != vid && vid.startsWith("ShareableResource")) {
-                resComp.append(((CShareableResource) rp.getView(vid)).getSourceResource(), false);
-            }
-            viewRam = (CShareableResource) rp.getView(vid);
-        }
-
-        List<IntVar> vms = new ArrayList<>(manageableVMs.size());
-        TObjectIntHashMap<IntVar> vmIds = new TObjectIntHashMap<>(manageableVMs.size(), 0.5f, -1);
-        TObjectIntHashMap<IntVar> initHost = new TObjectIntHashMap<>(rp.getFutureRunningVMs().size(), 0.5f, -1);
-        for (Iterator<VM> ite = rp.getManageableVMs().iterator(); ite.hasNext(); ) {
-            VM vm = ite.next();
-            Slice slice = rp.getVMAction(vm).getDSlice();
-            if (slice != null) {
-                IntVar var = slice.getHoster();
-                Node host = rp.getSourceModel().getMapping().getVMLocation(vm);
-                if (host != null) {
-                    initHost.put(var, rp.getNode(host));
-                }
-                vms.add(var);
-                vmIds.put(var, vm.id());
-            }
-        }
-        vms.sort(new VMVarConsumptionComparator(resComp, vmIds));
-        IntVar[] scope = vms.toArray(new IntVar[vms.size()]);
-
-        int j = 0;
-        int[] capas = new int[viewRam.getVirtualUsage().length];
-        for (IntVar v : view.getVirtualUsage()) {
-            capas[j++] = v.getValue();
-        }
-
-        strategies.add(new IntStrategy(scope, new InputOrder<>(), new RandomVMPlacement(initHost)));
-    }
-
-
-    class VMVarConsumptionComparator  implements Comparator<IntVar>, Serializable {
-        VMConsumptionComparator vmComp;
-        TObjectIntHashMap<IntVar> vmIds;
-
-        public VMVarConsumptionComparator(VMConsumptionComparator vmComp, TObjectIntHashMap<IntVar> vmIds) {
-            this.vmComp = vmComp;
-            this.vmIds = vmIds;
-        }
-
-        @Override
-        public int compare(IntVar o1, IntVar o2) {
-            return vmComp.compare(rp.getVM(vmIds.get(o1)), rp.getVM(vmIds.get(o2)));
+        if (((VectorPacking) v).getPackingVars().length > 0) {
+            strategies.add(new WorstFitDecreasingStrategy(rp, (VectorPacking) v));
         }
     }
-*/
-
         @Override
     public Set<VM> getMisPlacedVMs(Model m) {
         return Collections.emptySet();

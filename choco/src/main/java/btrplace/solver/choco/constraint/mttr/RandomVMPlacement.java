@@ -19,10 +19,6 @@
 package btrplace.solver.choco.constraint.mttr;
 
 
-import btrplace.model.Mapping;
-import btrplace.model.Node;
-import btrplace.model.VM;
-import btrplace.solver.choco.ReconfigurationProblem;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import gnu.trove.set.hash.TIntHashSet;
@@ -30,7 +26,6 @@ import solver.search.strategy.selectors.IntValueSelector;
 import solver.variables.IntVar;
 import util.iterators.DisposableValueIterator;
 
-import java.util.Map;
 import java.util.Random;
 
 
